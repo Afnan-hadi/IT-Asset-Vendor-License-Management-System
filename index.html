@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IT Asset & License Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #2c3e50 0%, #1a5276 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .tabs-container {
+            display: flex;
+            background: #34495e;
+            padding: 0;
+        }
+        
+        .tab {
+            padding: 18px 30px;
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+            border-right: 1px solid #2c3e50;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .tab:hover {
+            background: #2c3e50;
+        }
+        
+        .tab.active {
+            background: #1a5276;
+            border-bottom: 3px solid #3498db;
+        }
+        
+        .tab-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 30px;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .section-title {
+            font-size: 1.6rem;
+            color: #2c3e50;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #eaeaea;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .dashboard-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .dashboard-card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+            border-top: 4px solid;
+            transition: transform 0.3s;
+        }
+        
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .dashboard-card.assets {
+            border-top-color: #3498db;
+        }
+        
+        .dashboard-card.vendors {
+            border-top-color: #2ecc71;
+        }
+        
+        .dashboard-card.licenses {
+            border-top-color: #9b59b6;
+        }
+        
+        .dashboard-card.warranty {
+            border-top-color: #e74c3c;
+        }
+        
+        .dashboard-card h3 {
+            font-size: 2.2rem;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        
+        .dashboard-card p {
+            color: #7f8c8d;
+            font-size: 0.95rem;
+            margin-bottom: 15px;
+        }
+        
+        .dashboard-card .subtext {
+            font-size: 0.85rem;
+            color: #95a5a6;
+        }
+        
+        .two-column-layout {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .column {
+            flex: 1;
+            min-width: 350px;
+        }
+        
+        .form-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: border 0.3s;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+        
+        .form-row {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .form-row .form-group {
+            flex: 1;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+        
+        .btn-success {
+            background-color: #27ae60;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background-color: #219653;
+        }
+        
+        .btn-danger {
+            background-color: #e74c3c;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+        
+        .btn-secondary {
+            background-color: #95a5a6;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #7f8c8d;
+        }
+        
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.85rem;
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        
+        .data-table th {
+            background-color: #2c3e50;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        .data-table td {
+            padding: 15px;
+            border-bottom: 1px solid #eaeaea;
+        }
+        
+        .data-table tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        
+        .status-active {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .status-inactive {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status-expired {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-warning {
+            background-color: #ffeaa7;
+            color: #5d4037;
+        }
+        
+        .actions-cell {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #7f8c8d;
+        }
+        
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            color: #bdc3c7;
+        }
+        
+        .empty-state h3 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .search-filter {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .search-box {
+            flex: 2;
+            min-width: 300px;
+        }
+        
+        .filter-box {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .export-options {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            background: #ecf0f1;
+            border-radius: 4px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: #3498db;
+            border-radius: 4px;
+        }
+        
+        .asset-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            border-left: 4px solid #3498db;
+        }
+        
+        .asset-card.expiring {
+            border-left-color: #e74c3c;
+        }
+        
+        .asset-card.warning {
+            border-left-color: #f39c12;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 30px;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #7f8c8d;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #7f8c8d;
+            border-top: 1px solid #eaeaea;
+            font-size: 0.9rem;
+            background: #f8f9fa;
+        }
+        
+        @media (max-width: 768px) {
+            .tabs-container {
+                flex-direction: column;
+            }
+            
+            .tab {
+                border-right: none;
+                border-bottom: 1px solid #2c3e50;
+            }
+            
+            .two-column-layout {
+                flex-direction: column;
+            }
+            
+            .column {
+                min-width: 100%;
+            }
+            
+            .form-row {
+                flex-direction: column;
+                gap: 0;
+            }
+            
+            .search-filter {
+                flex-direction: column;
+            }
+            
+            .search-box, .filter-box {
+                min-width: 100%;
+            }
+        }
+        
+        .status-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        
+        .status-dot.active {
+            background-color: #27ae60;
+        }
+        
+        .status-dot.inactive {
+            background-color: #e74c3c;
+        }
+        
+        .status-dot.warning {
+            background-color: #f39c12;
+        }
+        
+        .date-near-expiry {
+            color: #e74c3c;
+            font-weight: 600;
+        }
+        
+        .date-ok {
+            color: #27ae60;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>IT Asset & License Management</h1>
+            <p class="subtitle">Track hardware assets, software licenses, and vendor contracts</p>
+        </header>
+        
+        <div class="tabs-container">
+            <div class="tab active" data-tab="dashboard">
+                <i class="fas fa-tachometer-alt"></i> Dashboard
+                <span class="tab-badge" id="dashboard-badge">3</span>
+            </div>
+            <div class="tab" data-tab="assets">
+                <i class="fas fa-laptop"></i> Assets
+                <span class="tab-badge" id="assets-badge">0</span>
+            </div>
+            <div class="tab" data-tab="licenses">
+                <i class="fas fa-key"></i> Licenses
+                <span class="tab-badge" id="licenses-badge">0</span>
+            </div>
+            <div class="tab" data-tab="vendors">
+                <i class="fas fa-handshake"></i> Vendors
+                <span class="tab-badge" id="vendors-badge">0</span>
+            </div>
+            <div class="tab" data-tab="reports">
+                <i class="fas fa-chart-bar"></i> Reports
+            </div>
+        </div>
+        
+        <!-- Dashboard Tab -->
+        <div id="dashboard" class="tab-content active">
+            <h2 class="section-title">IT Management Dashboard</h2>
+            
+            <div class="dashboard-cards">
+                <div class="dashboard-card assets">
+                    <h3 id="total-assets">0</h3>
+                    <p>Total Assets</p>
+                    <div class="subtext" id="asset-status">0 Active, 0 Inactive</div>
+                </div>
+                
+                <div class="dashboard-card vendors">
+                    <h3 id="total-vendors">0</h3>
+                    <p>Vendor Partners</p>
+                    <div class="subtext" id="vendor-status">0 Active, 0 Inactive</div>
+                </div>
+                
+                <div class="dashboard-card licenses">
+                    <h3 id="total-licenses">0</h3>
+                    <p>Software Licenses</p>
+                    <div class="subtext" id="license-status">0 Active, 0 Expired</div>
+                </div>
+                
+                <div class="dashboard-card warranty">
+                    <h3 id="expiring-soon">0</h3>
+                    <p>Expiring Soon</p>
+                    <div class="subtext">Licenses & Warranties</div>
+                </div>
+            </div>
+            
+            <div class="two-column-layout">
+                <div class="column">
+                    <div class="form-section">
+                        <h3 class="section-title">Quick Actions</h3>
+                        
+                        <div class="quick-actions">
+                            <button class="btn btn-primary" onclick="switchTab('assets')" style="margin-bottom: 10px; width: 100%;">
+                                <i class="fas fa-plus-circle"></i> Add New Asset
+                            </button>
+                            
+                            <button class="btn btn-success" onclick="switchTab('licenses')" style="margin-bottom: 10px; width: 100%;">
+                                <i class="fas fa-key"></i> Register New License
+                            </button>
+                            
+                            <button class="btn btn-primary" onclick="switchTab('vendors')" style="margin-bottom: 10px; width: 100%;">
+                                <i class="fas fa-handshake"></i> Add New Vendor
+                            </button>
+                            
+                            <button class="btn btn-secondary" onclick="exportAllData()" style="width: 100%;">
+                                <i class="fas fa-file-export"></i> Export All Data
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-section">
+                        <h3 class="section-title">Upcoming Renewals</h3>
+                        <div id="upcoming-renewals">
+                            <!-- Renewals will be loaded here -->
+                        </div>
+                        <div id="empty-renewals" class="empty-state" style="padding: 20px; display: none;">
+                            <i class="fas fa-calendar-check"></i>
+                            <p>No upcoming renewals</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="column">
+                    <div class="form-section">
+                        <h3 class="section-title">Recent Activities</h3>
+                        <div id="recent-activities">
+                            <!-- Activities will be loaded here -->
+                        </div>
+                        <div id="empty-activities" class="empty-state" style="padding: 20px; display: none;">
+                            <i class="fas fa-history"></i>
+                            <p>No recent activities</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Assets Tab -->
+        <div id="assets" class="tab-content">
+            <h2 class="section-title">IT Assets Management</h2>
+            
+            <div class="two-column-layout">
+                <div class="column">
+                    <div class="form-section">
+                        <h3 class="section-title">Add/Edit Asset</h3>
+                        <form id="assetForm">
+                            <input type="hidden" id="assetId">
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="assetTag">Asset Tag/Serial #</label>
+                                    <input type="text" id="assetTag" placeholder="ASSET-001" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="assetName">Asset Name</label>
+                                    <input type="text" id="assetName" placeholder="Dell Latitude 7420" required>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="assetType">Asset Type</label>
+                                    <select id="assetType" required>
+                                        <option value="">Select Type</option>
+                                        <option value="Laptop">Laptop</option>
+                                        <option value="Desktop">Desktop</option>
+                                        <option value="Server">Server</option>
+                                        <option value="Printer">Printer</option>
+                                        <option value="Network">Network Device</option>
+                                        <option value="Mobile">Mobile Device</option>
+                                        <option value="Monitor">Monitor</option>
+                                        <option value="Other">Other Hardware</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="assetStatus">Status</label>
+                                    <select id="assetStatus" required>
+                                        <option value="Active">Active</option>
+                                        <option value="Inactive">Inactive</option>
+                                        <option value="Retired">Retired</option>
+                                        <option value="Repair">Under Repair</option>
+                                        <option value="Lost">Lost/Stolen</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="assignedTo">Assigned To</label>
+                                    <input type="text" id="assignedTo" placeholder="Employee Name/Department">
+                                </div>
+                                <div class="form-group">
+                                    <label for="location">Location</label>
+                                    <input type="text" id="location" placeholder="Office/Floor/Desk">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="purchaseDate">Purchase Date</label>
+                                <input type="date" id="purchaseDate">
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="warrantyEnd">Warranty End Date</label>
+                                    <input type="date" id="warrantyEnd">
+                                </div>
+                                <div class="form-group">
+                                    <label for="purchaseCost">Purchase Cost</label>
+                                    <input type="number" id="purchaseCost" step="0.01" placeholder="0.00">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="vendor">Vendor</label>
+                                <select id="vendor">
+                                    <option value="">Select Vendor</option>
+                                    <!-- Vendors will be populated from data -->
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="assetNotes">Notes</label>
+                                <textarea id="assetNotes" rows="3" placeholder="Specifications, issues, or other notes"></textarea>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Save Asset
+                                </button>
+                                <button type="button" id="clearAssetForm" class="btn btn-secondary">
+                                    <i class="fas fa-eraser"></i> Clear
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <div class="column">
+                    <div class="search-filter">
+                        <div class="search-box">
+                            <label>Search Assets</label>
+                            <input type="text" id="searchAssets" placeholder="Search by tag, name, assigned to...">
+                        </div>
+                        <div class="filter-box">
+                            <label>Filter by Type</label>
+                            <select id="filterAssetType">
+                                <option value="">All Types</option>
+                                <option value="Laptop">Laptop</option>
+                                <option value="Desktop">Desktop</option>
+                                <option value="Server">Server</option>
+                                <option value="Printer">Printer</option>
+                                <option value="Network">Network</option>
+                                <option value="Mobile">Mobile</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="filter-box">
+                            <label>Filter by Status</label>
+                            <select id="filterAssetStatus">
+                                <option value="">All Status</option>
+                                <option value="Active">Active</option>
+                                <option value="Inactive">Inactive</option>
+                                <option value="Retired">Retired</option>
+                                <option value="Repair">Under Repair</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="export-options">
+                        <button id="exportAssets" class="btn btn-success btn-sm">
+                            <i class="fas fa-file-csv"></i> Export Assets
+                        </button>
+                    </div>
+                    
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Asset Tag</th>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Status</th>
+                                <th>Assigned To</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="assetsTableBody">
+                            <!-- Assets will be loaded here -->
+                        </tbody>
+                    </table>
+                    
+                    <div id="emptyAssets" class="empty-state" style="display: none;">
+                        <i class="fas fa-laptop"></i>
+                        <h3>No Assets Found</h3>
+                        <p>Add your first asset using the form on the left.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Licenses Tab -->
+        <div id="licenses" class="tab-content">
+            <h2 class="section-title">Software License Management</h2>
+            
+            <div class="two-column-layout">
+                <div class="column">
+                    <div class="form-section">
+                        <h3 class="section-title">Add/Edit License</h3>
+                        <form id="licenseForm">
+                            <input type="hidden" id="licenseId">
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="licenseKey">License Key</label>
+                                    <input type="text" id="licenseKey" placeholder="XXXXX-XXXXX-XXXXX" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="softwareName">Software Name</label>
+                                    <input type="text" id="softwareName" placeholder="Microsoft Office 365" required>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="licenseType">License Type</label>
+                                    <select id="licenseType" required>
+                                        <option value="">Select Type</option>
+                                        <option value="Perpetual">Perpetual</option>
+                                        <option value="Subscription">Subscription</option>
+                                        <option value="Trial">Trial</option>
+                                        <option value="Volume">Volume License</option>
+                                        <option value="OEM">OEM</option>
+                                        <option value="Open Source">Open Source</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="licenseStatus">Status</label>
+                                    <select id="licenseStatus" required>
+                                        <option value="Active">Active</option>
+                                        <option value="Expired">Expired</option>
+                                        <option value="Suspended">Suspended</option>
+                                        <option value="Renewal Pending">Renewal Pending</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="purchaseDateLicense">Purchase Date</label>
+                                    <input type="date" id="purchaseDateLicense">
+                                </div>
+                                <div class="form-group">
+                                    <label for="expiryDate">Expiry Date</label>
+                                    <input type="date" id="expiryDate">
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="seats">Number of Seats</label>
+                                    <input type="number" id="seats" min="1" value="1">
+                                </div>
+                                <div class="form-group">
+                                    <label for="usedSeats">Used Seats</label>
+                                    <input type="number" id="usedSeats" min="0" value="0">
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="licenseCost">License Cost</label>
+                                    <input type="number" id="licenseCost" step="0.01" placeholder="0.00">
+                                </div>
+                                <div class="form-group">
+                                    <label for="renewalCost">Renewal Cost</label>
+                                    <input type="number" id="renewalCost" step="0.01" placeholder="0.00">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="licenseVendor">Vendor</label>
+                                <select id="licenseVendor">
+                                    <option value="">Select Vendor</option>
+                                    <!-- Vendors will be populated from data -->
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="assignedUsers">Assigned Users (comma separated)</label>
+                                <textarea id="assignedUsers" rows="2" placeholder="user1@company.com, user2@company.com"></textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="licenseNotes">Notes</label>
+                                <textarea id="licenseNotes" rows="3" placeholder="License terms, restrictions, or other notes"></textarea>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Save License
+                                </button>
+                                <button type="button" id="clearLicenseForm" class="btn btn-secondary">
+                                    <i class="fas fa-eraser"></i> Clear
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <div class="column">
+                    <div class="search-filter">
+                        <div class="search-box">
+                            <label>Search Licenses</label>
+                            <input type="text" id="searchLicenses" placeholder="Search by software name, key...">
+                        </div>
+                        <div class="filter-box">
+                            <label>Filter by Status</label>
+                            <select id="filterLicenseStatus">
+                                <option value="">All Status</option>
+                                <option value="Active">Active</option>
+                                <option value="Expired">Expired</option>
+                                <option value="Suspended">Suspended</option>
+                                <option value="Renewal Pending">Renewal Pending</option>
+                            </select>
+                        </div>
+                        <div class="filter-box">
+                            <label>Filter by Type</label>
+                            <select id="filterLicenseType">
+                                <option value="">All Types</option>
+                                <option value="Perpetual">Perpetual</option>
+                                <option value="Subscription">Subscription</option>
+                                <option value="Trial">Trial</option>
+                                <option value="Volume">Volume</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="export-options">
+                        <button id="exportLicenses" class="btn btn-success btn-sm">
+                            <i class="fas fa-file-csv"></i> Export Licenses
+                        </button>
+                    </div>
+                    
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Software</th>
+                                <th>Type</th>
+                                <th>Seats</th>
+                                <th>Status</th>
+                                <th>Expiry Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="licensesTableBody">
+                            <!-- Licenses will be loaded here -->
+                        </tbody>
+                    </table>
+                    
+                    <div id="emptyLicenses" class="empty-state" style="display: none;">
+                        <i class="fas fa-key"></i>
+                        <h3>No Licenses Found</h3>
+                        <p>Add your first license using the form on the left.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Vendors Tab -->
+        <div id="vendors" class="tab-content">
+            <h2 class="section-title">Vendor Management</h2>
+            
+            <div class="two-column-layout">
+                <div class="column">
+                    <div class="form-section">
+                        <h3 class="section-title">Add/Edit Vendor</h3>
+                        <form id="vendorForm">
+                            <input type="hidden" id="vendorId">
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="vendorName">Vendor Name</label>
+                                    <input type="text" id="vendorName" placeholder="Dell Technologies" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="vendorType">Vendor Type</label>
+                                    <select id="vendorType" required>
+                                        <option value="">Select Type</option>
+                                        <option value="Hardware">Hardware Supplier</option>
+                                        <option value="Software">Software Vendor</option>
+                                        <option value="Service">Service Provider</option>
+                                        <option value="Consulting">Consulting</option>
+                                        <option value="Cloud">Cloud Services</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="contactPerson">Contact Person</label>
+                                    <input type="text" id="contactPerson" placeholder="John Smith">
+                                </div>
+                                <div class="form-group">
+                                    <label for="contactEmail">Contact Email</label>
+                                    <input type="email" id="contactEmail" placeholder="contact@vendor.com">
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="contactPhone">Contact Phone</label>
+                                    <input type="tel" id="contactPhone" placeholder="+1 (555) 123-4567">
+                                </div>
+                                <div class="form-group">
+                                    <label for="vendorWebsite">Website</label>
+                                    <input type="url" id="vendorWebsite" placeholder="https://www.vendor.com">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="contractStart">Contract Start Date</label>
+                                <input type="date" id="contractStart">
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="contractEnd">Contract End Date</label>
+                                    <input type="date" id="contractEnd">
+                                </div>
+                                <div class="form-group">
+                                    <label for="vendorStatus">Status</label>
+                                    <select id="vendorStatus" required>
+                                        <option value="Active">Active</option>
+                                        <option value="Inactive">Inactive</option>
+                                        <option value="Pending">Pending Approval</option>
+                                        <option value="Terminated">Terminated</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="serviceLevel">Service Level Agreement (SLA)</label>
+                                <textarea id="serviceLevel" rows="2" placeholder="Response time, uptime guarantees..."></textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="vendorNotes">Notes</label>
+                                <textarea id="vendorNotes" rows="3" placeholder="Payment terms, support info, or other notes"></textarea>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Save Vendor
+                                </button>
+                                <button type="button" id="clearVendorForm" class="btn btn-secondary">
+                                    <i class="fas fa-eraser"></i> Clear
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <div class="column">
+                    <div class="search-filter">
+                        <div class="search-box">
+                            <label>Search Vendors</label>
+                            <input type="text" id="searchVendors" placeholder="Search by vendor name, contact...">
+                        </div>
+                        <div class="filter-box">
+                            <label>Filter by Type</label>
+                            <select id="filterVendorType">
+                                <option value="">All Types</option>
+                                <option value="Hardware">Hardware</option>
+                                <option value="Software">Software</option>
+                                <option value="Service">Service</option>
+                                <option value="Consulting">Consulting</option>
+                                <option value="Cloud">Cloud</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="filter-box">
+                            <label>Filter by Status</label>
+                            <select id="filterVendorStatus">
+                                <option value="">All Status</option>
+                                <option value="Active">Active</option>
+                                <option value="Inactive">Inactive</option>
+                                <option value="Pending">Pending</option>
+                                <option value="Terminated">Terminated</option>
+                            </select>
+                        </
