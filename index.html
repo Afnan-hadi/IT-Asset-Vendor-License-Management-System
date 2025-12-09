@@ -1073,4 +1073,1624 @@
                                 <option value="Pending">Pending</option>
                                 <option value="Terminated">Terminated</option>
                             </select>
-                        </
+                        </div>
+                    </div>
+                    
+                    <div class="export-options">
+                        <button id="exportVendors" class="btn btn-success btn-sm">
+                            <i class="fas fa-file-csv"></i> Export Vendors
+                        </button>
+                    </div>
+                    
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Vendor Name</th>
+                                <th>Type</th>
+                                <th>Contact Person</th>
+                                <th>Email</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vendorsTableBody">
+                            <!-- Vendors will be loaded here -->
+                        </tbody>
+                    </table>
+                    
+                    <div id="emptyVendors" class="empty-state" style="display: none;">
+                        <i class="fas fa-handshake"></i>
+                        <h3>No Vendors Found</h3>
+                        <p>Add your first vendor using the form on the left.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Reports Tab -->
+        <div id="reports" class="tab-content">
+            <h2 class="section-title">Reports & Exports</h2>
+            
+            <div class="form-section">
+                <h3>Data Export</h3>
+                <p>Export your data in various formats for backup or analysis.</p>
+                
+                <div class="export-options" style="margin-top: 20px;">
+                    <button class="btn btn-primary" onclick="exportAllData()">
+                        <i class="fas fa-file-export"></i> Export All Data (JSON)
+                    </button>
+                    <button class="btn btn-success" onclick="exportAssetsCSV()">
+                        <i class="fas fa-file-csv"></i> Export Assets (CSV)
+                    </button>
+                    <button class="btn btn-success" onclick="exportLicensesCSV()">
+                        <i class="fas fa-file-csv"></i> Export Licenses (CSV)
+                    </button>
+                    <button class="btn btn-success" onclick="exportVendorsCSV()">
+                        <i class="fas fa-file-csv"></i> Export Vendors (CSV)
+                    </button>
+                </div>
+                
+                <div style="margin-top: 30px;">
+                    <h3>Statistics</h3>
+                    <div id="reportStats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-top: 20px;">
+                        <!-- Statistics will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>IT Asset & License Management System &copy; <span id="currentYear"></span> | All data is stored locally in your browser</p>
+        </footer>
+    </div>
+
+    <!-- Modal for viewing details -->
+    <div id="problemModal" class="modal">
+        <div class="modal-content">
+            <div id="modalContent">
+                <!-- Modal content will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============== GLOBAL VARIABLES ==============
+        let assets = JSON.parse(localStorage.getItem('itAssets')) || [];
+        let licenses = JSON.parse(localStorage.getItem('itLicenses')) || [];
+        let vendors = JSON.parse(localStorage.getItem('itVendors')) || [];
+        let activities = JSON.parse(localStorage.getItem('itActivities')) || [];
+        
+        let editingAssetId = null;
+        let editingLicenseId = null;
+        let editingVendorId = null;
+        
+        // ============== INITIALIZATION ==============
+        document.addEventListener('DOMContentLoaded', function() {
+            initApp();
+        });
+        
+        function initApp() {
+            // Set current year
+            document.getElementById('currentYear').textContent = new Date().getFullYear();
+            
+            // Set today's date in forms
+            setTodayDates();
+            
+            // Initialize tabs
+            setupTabs();
+            
+            // Initialize forms
+            setupForms();
+            
+            // Initialize filters and search
+            setupFilters();
+            
+            // Load initial data
+            loadAllData();
+            
+            // Populate vendor dropdowns
+            populateVendorDropdowns();
+            
+            // Add some sample data if empty
+            if (assets.length === 0 && licenses.length === 0 && vendors.length === 0) {
+                addSampleData();
+            }
+        }
+        
+        // ============== TAB MANAGEMENT ==============
+        function setupTabs() {
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const tabId = this.getAttribute('data-tab');
+                    switchTab(tabId);
+                });
+            });
+            
+            // Set default active tab
+            switchTab('dashboard');
+        }
+        
+        function switchTab(tabId) {
+            // Hide all tab content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            document.getElementById(tabId).classList.add('active');
+            
+            // Activate selected tab
+            document.querySelector(`.tab[data-tab="${tabId}"]`).classList.add('active');
+            
+            // Load data for the tab
+            if (tabId === 'assets') {
+                renderAssetsTable();
+            } else if (tabId === 'licenses') {
+                renderLicensesTable();
+            } else if (tabId === 'vendors') {
+                renderVendorsTable();
+            } else if (tabId === 'dashboard') {
+                updateDashboard();
+            } else if (tabId === 'reports') {
+                loadReportStats();
+            }
+        }
+        
+        // ============== FORM MANAGEMENT ==============
+        function setupForms() {
+            // Asset Form
+            document.getElementById('assetForm').addEventListener('submit', handleAssetSubmit);
+            document.getElementById('clearAssetForm').addEventListener('click', clearAssetForm);
+            
+            // License Form
+            document.getElementById('licenseForm').addEventListener('submit', handleLicenseSubmit);
+            document.getElementById('clearLicenseForm').addEventListener('click', clearLicenseForm);
+            
+            // Vendor Form
+            document.getElementById('vendorForm').addEventListener('submit', handleVendorSubmit);
+            document.getElementById('clearVendorForm').addEventListener('click', clearVendorForm);
+            
+            // Export buttons
+            document.getElementById('exportAssets').addEventListener('click', exportAssetsCSV);
+            document.getElementById('exportLicenses').addEventListener('click', exportLicensesCSV);
+            document.getElementById('exportVendors').addEventListener('click', exportVendorsCSV);
+            
+            // Set today's date
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('purchaseDate').value = today;
+            document.getElementById('purchaseDateLicense').value = today;
+            document.getElementById('contractStart').value = today;
+        }
+        
+        function setTodayDates() {
+            const today = new Date().toISOString().split('T')[0];
+            const nextYear = new Date();
+            nextYear.setFullYear(nextYear.getFullYear() + 1);
+            const nextYearStr = nextYear.toISOString().split('T')[0];
+            
+            document.getElementById('warrantyEnd').value = nextYearStr;
+            document.getElementById('expiryDate').value = nextYearStr;
+            document.getElementById('contractEnd').value = nextYearStr;
+        }
+        
+        function setupFilters() {
+            // Asset filters
+            document.getElementById('searchAssets').addEventListener('input', filterAssets);
+            document.getElementById('filterAssetType').addEventListener('change', filterAssets);
+            document.getElementById('filterAssetStatus').addEventListener('change', filterAssets);
+            
+            // License filters
+            document.getElementById('searchLicenses').addEventListener('input', filterLicenses);
+            document.getElementById('filterLicenseStatus').addEventListener('change', filterLicenses);
+            document.getElementById('filterLicenseType').addEventListener('change', filterLicenses);
+            
+            // Vendor filters
+            document.getElementById('searchVendors').addEventListener('input', filterVendors);
+            document.getElementById('filterVendorType').addEventListener('change', filterVendors);
+            document.getElementById('filterVendorStatus').addEventListener('change', filterVendors);
+        }
+        
+        // ============== ASSET MANAGEMENT ==============
+        function handleAssetSubmit(e) {
+            e.preventDefault();
+            
+            const asset = {
+                id: editingAssetId || 'ASSET-' + Date.now(),
+                assetTag: document.getElementById('assetTag').value,
+                assetName: document.getElementById('assetName').value,
+                assetType: document.getElementById('assetType').value,
+                assetStatus: document.getElementById('assetStatus').value,
+                assignedTo: document.getElementById('assignedTo').value,
+                location: document.getElementById('location').value,
+                purchaseDate: document.getElementById('purchaseDate').value,
+                warrantyEnd: document.getElementById('warrantyEnd').value,
+                purchaseCost: parseFloat(document.getElementById('purchaseCost').value) || 0,
+                vendor: document.getElementById('vendor').value,
+                assetNotes: document.getElementById('assetNotes').value,
+                createdAt: editingAssetId ? assets.find(a => a.id === editingAssetId).createdAt : new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+            
+            if (editingAssetId) {
+                // Update existing asset
+                const index = assets.findIndex(a => a.id === editingAssetId);
+                if (index !== -1) {
+                    assets[index] = asset;
+                    addActivity('Updated asset: ' + asset.assetName);
+                }
+                editingAssetId = null;
+            } else {
+                // Add new asset
+                assets.push(asset);
+                addActivity('Added new asset: ' + asset.assetName);
+            }
+            
+            saveAssets();
+            renderAssetsTable();
+            clearAssetForm();
+            updateDashboard();
+            showToast('Asset saved successfully!', 'success');
+        }
+        
+        function editAsset(id) {
+            const asset = assets.find(a => a.id === id);
+            if (!asset) return;
+            
+            // Populate form
+            document.getElementById('assetId').value = asset.id;
+            document.getElementById('assetTag').value = asset.assetTag;
+            document.getElementById('assetName').value = asset.assetName;
+            document.getElementById('assetType').value = asset.assetType;
+            document.getElementById('assetStatus').value = asset.assetStatus;
+            document.getElementById('assignedTo').value = asset.assignedTo || '';
+            document.getElementById('location').value = asset.location || '';
+            document.getElementById('purchaseDate').value = asset.purchaseDate || '';
+            document.getElementById('warrantyEnd').value = asset.warrantyEnd || '';
+            document.getElementById('purchaseCost').value = asset.purchaseCost || '';
+            document.getElementById('vendor').value = asset.vendor || '';
+            document.getElementById('assetNotes').value = asset.assetNotes || '';
+            
+            editingAssetId = id;
+            document.querySelector('#assetForm button[type="submit"]').innerHTML = '<i class="fas fa-save"></i> Update Asset';
+            
+            // Scroll to form
+            document.getElementById('assets').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function deleteAsset(id) {
+            if (confirm('Are you sure you want to delete this asset?')) {
+                const asset = assets.find(a => a.id === id);
+                assets = assets.filter(a => a.id !== id);
+                saveAssets();
+                addActivity('Deleted asset: ' + asset.assetName);
+                renderAssetsTable();
+                updateDashboard();
+                showToast('Asset deleted successfully!', 'success');
+            }
+        }
+        
+        function clearAssetForm() {
+            document.getElementById('assetForm').reset();
+            setTodayDates();
+            editingAssetId = null;
+            document.querySelector('#assetForm button[type="submit"]').innerHTML = '<i class="fas fa-save"></i> Save Asset';
+        }
+        
+        function filterAssets() {
+            const searchTerm = document.getElementById('searchAssets').value.toLowerCase();
+            const typeFilter = document.getElementById('filterAssetType').value;
+            const statusFilter = document.getElementById('filterAssetStatus').value;
+            
+            const filtered = assets.filter(asset => {
+                // Search filter
+                const matchesSearch = !searchTerm || 
+                    asset.assetTag.toLowerCase().includes(searchTerm) ||
+                    asset.assetName.toLowerCase().includes(searchTerm) ||
+                    (asset.assignedTo && asset.assignedTo.toLowerCase().includes(searchTerm));
+                
+                // Type filter
+                const matchesType = !typeFilter || asset.assetType === typeFilter;
+                
+                // Status filter
+                const matchesStatus = !statusFilter || asset.assetStatus === statusFilter;
+                
+                return matchesSearch && matchesType && matchesStatus;
+            });
+            
+            renderAssetsTable(filtered);
+        }
+        
+        function renderAssetsTable(filteredAssets = null) {
+            const assetsToShow = filteredAssets || assets;
+            const tbody = document.getElementById('assetsTableBody');
+            const emptyState = document.getElementById('emptyAssets');
+            
+            if (assetsToShow.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+            
+            emptyState.style.display = 'none';
+            
+            // Sort by last updated
+            const sortedAssets = [...assetsToShow].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+            
+            tbody.innerHTML = sortedAssets.map(asset => `
+                <tr>
+                    <td><strong>${asset.assetTag}</strong></td>
+                    <td>${asset.assetName}</td>
+                    <td>${asset.assetType}</td>
+                    <td>
+                        <span class="status-badge ${getStatusClass(asset.assetStatus)}">
+                            ${asset.assetStatus}
+                        </span>
+                    </td>
+                    <td>${asset.assignedTo || 'Unassigned'}</td>
+                    <td class="actions-cell">
+                        <button class="btn btn-primary btn-sm" onclick="viewAsset('${asset.id}')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-success btn-sm" onclick="editAsset('${asset.id}')">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteAsset('${asset.id}')">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+            
+            // Update badge
+            document.getElementById('assets-badge').textContent = assets.length;
+        }
+        
+        function viewAsset(id) {
+            const asset = assets.find(a => a.id === id);
+            if (!asset) return;
+            
+            // Create modal content
+            const modalContent = `
+                <div class="modal-header">
+                    <h2>Asset Details</h2>
+                    <button class="modal-close" onclick="closeModal()">&times;</button>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color: #2c3e50;">${asset.assetName}</h3>
+                    <p style="color: #7f8c8d;">Tag: ${asset.assetTag} | Type: ${asset.assetType}</p>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 20px;">
+                    <div>
+                        <strong>Status:</strong><br>
+                        <span class="status-badge ${getStatusClass(asset.assetStatus)}">${asset.assetStatus}</span>
+                    </div>
+                    <div>
+                        <strong>Assigned To:</strong><br>
+                        ${asset.assignedTo || 'Unassigned'}
+                    </div>
+                    <div>
+                        <strong>Location:</strong><br>
+                        ${asset.location || 'Not specified'}
+                    </div>
+                    <div>
+                        <strong>Vendor:</strong><br>
+                        ${asset.vendor || 'Not specified'}
+                    </div>
+                    <div>
+                        <strong>Purchase Date:</strong><br>
+                        ${formatDate(asset.purchaseDate)}
+                    </div>
+                    <div>
+                        <strong>Warranty End:</strong><br>
+                        <span class="${isDateNearExpiry(asset.warrantyEnd) ? 'date-near-expiry' : 'date-ok'}">
+                            ${formatDate(asset.warrantyEnd)}
+                        </span>
+                    </div>
+                    <div>
+                        <strong>Purchase Cost:</strong><br>
+                        ${asset.purchaseCost ? '$' + asset.purchaseCost.toFixed(2) : 'Not specified'}
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <strong>Notes:</strong>
+                    <p style="background-color: #f8f9fa; padding: 15px; border-radius: 6px; margin-top: 8px;">
+                        ${asset.assetNotes || 'No notes'}
+                    </p>
+                </div>
+                
+                <div style="color: #95a5a6; font-size: 0.9rem;">
+                    <p>Created: ${formatDateTime(asset.createdAt)}</p>
+                    <p>Last updated: ${formatDateTime(asset.updatedAt)}</p>
+                </div>
+            `;
+            
+            showModal(modalContent);
+        }
+        
+        // ============== LICENSE MANAGEMENT ==============
+        function handleLicenseSubmit(e) {
+            e.preventDefault();
+            
+            const license = {
+                id: editingLicenseId || 'LIC-' + Date.now(),
+                licenseKey: document.getElementById('licenseKey').value,
+                softwareName: document.getElementById('softwareName').value,
+                licenseType: document.getElementById('licenseType').value,
+                licenseStatus: document.getElementById('licenseStatus').value,
+                purchaseDate: document.getElementById('purchaseDateLicense').value,
+                expiryDate: document.getElementById('expiryDate').value,
+                seats: parseInt(document.getElementById('seats').value) || 1,
+                usedSeats: parseInt(document.getElementById('usedSeats').value) || 0,
+                licenseCost: parseFloat(document.getElementById('licenseCost').value) || 0,
+                renewalCost: parseFloat(document.getElementById('renewalCost').value) || 0,
+                vendor: document.getElementById('licenseVendor').value,
+                assignedUsers: document.getElementById('assignedUsers').value,
+                licenseNotes: document.getElementById('licenseNotes').value,
+                createdAt: editingLicenseId ? licenses.find(l => l.id === editingLicenseId).createdAt : new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+            
+            if (editingLicenseId) {
+                // Update existing license
+                const index = licenses.findIndex(l => l.id === editingLicenseId);
+                if (index !== -1) {
+                    licenses[index] = license;
+                    addActivity('Updated license: ' + license.softwareName);
+                }
+                editingLicenseId = null;
+            } else {
+                // Add new license
+                licenses.push(license);
+                addActivity('Added new license: ' + license.softwareName);
+            }
+            
+            saveLicenses();
+            renderLicensesTable();
+            clearLicenseForm();
+            updateDashboard();
+            showToast('License saved successfully!', 'success');
+        }
+        
+        function editLicense(id) {
+            const license = licenses.find(l => l.id === id);
+            if (!license) return;
+            
+            // Populate form
+            document.getElementById('licenseId').value = license.id;
+            document.getElementById('licenseKey').value = license.licenseKey;
+            document.getElementById('softwareName').value = license.softwareName;
+            document.getElementById('licenseType').value = license.licenseType;
+            document.getElementById('licenseStatus').value = license.licenseStatus;
+            document.getElementById('purchaseDateLicense').value = license.purchaseDate || '';
+            document.getElementById('expiryDate').value = license.expiryDate || '';
+            document.getElementById('seats').value = license.seats || 1;
+            document.getElementById('usedSeats').value = license.usedSeats || 0;
+            document.getElementById('licenseCost').value = license.licenseCost || '';
+            document.getElementById('renewalCost').value = license.renewalCost || '';
+            document.getElementById('licenseVendor').value = license.vendor || '';
+            document.getElementById('assignedUsers').value = license.assignedUsers || '';
+            document.getElementById('licenseNotes').value = license.licenseNotes || '';
+            
+            editingLicenseId = id;
+            document.querySelector('#licenseForm button[type="submit"]').innerHTML = '<i class="fas fa-save"></i> Update License';
+            
+            // Scroll to form
+            document.getElementById('licenses').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function deleteLicense(id) {
+            if (confirm('Are you sure you want to delete this license?')) {
+                const license = licenses.find(l => l.id === id);
+                licenses = licenses.filter(l => l.id !== id);
+                saveLicenses();
+                addActivity('Deleted license: ' + license.softwareName);
+                renderLicensesTable();
+                updateDashboard();
+                showToast('License deleted successfully!', 'success');
+            }
+        }
+        
+        function clearLicenseForm() {
+            document.getElementById('licenseForm').reset();
+            document.getElementById('seats').value = 1;
+            document.getElementById('usedSeats').value = 0;
+            setTodayDates();
+            editingLicenseId = null;
+            document.querySelector('#licenseForm button[type="submit"]').innerHTML = '<i class="fas fa-save"></i> Save License';
+        }
+        
+        function filterLicenses() {
+            const searchTerm = document.getElementById('searchLicenses').value.toLowerCase();
+            const statusFilter = document.getElementById('filterLicenseStatus').value;
+            const typeFilter = document.getElementById('filterLicenseType').value;
+            
+            const filtered = licenses.filter(license => {
+                // Search filter
+                const matchesSearch = !searchTerm || 
+                    license.softwareName.toLowerCase().includes(searchTerm) ||
+                    license.licenseKey.toLowerCase().includes(searchTerm);
+                
+                // Status filter
+                const matchesStatus = !statusFilter || license.licenseStatus === statusFilter;
+                
+                // Type filter
+                const matchesType = !typeFilter || license.licenseType === typeFilter;
+                
+                return matchesSearch && matchesStatus && matchesType;
+            });
+            
+            renderLicensesTable(filtered);
+        }
+        
+        function renderLicensesTable(filteredLicenses = null) {
+            const licensesToShow = filteredLicenses || licenses;
+            const tbody = document.getElementById('licensesTableBody');
+            const emptyState = document.getElementById('emptyLicenses');
+            
+            if (licensesToShow.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+            
+            emptyState.style.display = 'none';
+            
+            // Sort by expiry date (soonest first)
+            const sortedLicenses = [...licensesToShow].sort((a, b) => {
+                if (!a.expiryDate) return 1;
+                if (!b.expiryDate) return -1;
+                return new Date(a.expiryDate) - new Date(b.expiryDate);
+            });
+            
+            tbody.innerHTML = sortedLicenses.map(license => `
+                <tr>
+                    <td>
+                        <strong>${license.softwareName}</strong><br>
+                        <small style="color: #7f8c8d; font-size: 0.85rem;">${license.licenseKey.substring(0, 20)}...</small>
+                    </td>
+                    <td>${license.licenseType}</td>
+                    <td>${license.usedSeats}/${license.seats}</td>
+                    <td>
+                        <span class="status-badge ${getLicenseStatusClass(license.licenseStatus, license.expiryDate)}">
+                            ${license.licenseStatus}
+                        </span>
+                    </td>
+                    <td class="${isDateNearExpiry(license.expiryDate) ? 'date-near-expiry' : 'date-ok'}">
+                        ${formatDate(license.expiryDate)}
+                    </td>
+                    <td class="actions-cell">
+                        <button class="btn btn-primary btn-sm" onclick="viewLicense('${license.id}')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-success btn-sm" onclick="editLicense('${license.id}')">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteLicense('${license.id}')">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+            
+            // Update badge
+            document.getElementById('licenses-badge').textContent = licenses.length;
+        }
+        
+        function viewLicense(id) {
+            const license = licenses.find(l => l.id === id);
+            if (!license) return;
+            
+            // Calculate usage percentage
+            const usagePercent = license.seats > 0 ? (license.usedSeats / license.seats) * 100 : 0;
+            
+            const modalContent = `
+                <div class="modal-header">
+                    <h2>License Details</h2>
+                    <button class="modal-close" onclick="closeModal()">&times;</button>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color: #2c3e50;">${license.softwareName}</h3>
+                    <p style="color: #7f8c8d;">Key: ${license.licenseKey} | Type: ${license.licenseType}</p>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 20px;">
+                    <div>
+                        <strong>Status:</strong><br>
+                        <span class="status-badge ${getLicenseStatusClass(license.licenseStatus, license.expiryDate)}">
+                            ${license.licenseStatus}
+                        </span>
+                    </div>
+                    <div>
+                        <strong>Vendor:</strong><br>
+                        ${license.vendor || 'Not specified'}
+                    </div>
+                    <div>
+                        <strong>Purchase Date:</strong><br>
+                        ${formatDate(license.purchaseDate)}
+                    </div>
+                    <div>
+                        <strong>Expiry Date:</strong><br>
+                        <span class="${isDateNearExpiry(license.expiryDate) ? 'date-near-expiry' : 'date-ok'}">
+                            ${formatDate(license.expiryDate)}
+                        </span>
+                    </div>
+                    <div>
+                        <strong>Seats Usage:</strong><br>
+                        ${license.usedSeats}/${license.seats} (${usagePercent.toFixed(1)}%)
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${usagePercent}%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <strong>Cost:</strong><br>
+                        License: ${license.licenseCost ? '$' + license.licenseCost.toFixed(2) : 'N/A'}<br>
+                        Renewal: ${license.renewalCost ? '$' + license.renewalCost.toFixed(2) : 'N/A'}
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <strong>Assigned Users:</strong>
+                    <p style="background-color: #f8f9fa; padding: 15px; border-radius: 6px; margin-top: 8px;">
+                        ${license.assignedUsers || 'No users assigned'}
+                    </p>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <strong>Notes:</strong>
+                    <p style="background-color: #f8f9fa; padding: 15px; border-radius: 6px; margin-top: 8px;">
+                        ${license.licenseNotes || 'No notes'}
+                    </p>
+                </div>
+                
+                <div style="color: #95a5a6; font-size: 0.9rem;">
+                    <p>Created: ${formatDateTime(license.createdAt)}</p>
+                    <p>Last updated: ${formatDateTime(license.updatedAt)}</p>
+                </div>
+            `;
+            
+            showModal(modalContent);
+        }
+        
+        // ============== VENDOR MANAGEMENT ==============
+        function handleVendorSubmit(e) {
+            e.preventDefault();
+            
+            const vendor = {
+                id: editingVendorId || 'VENDOR-' + Date.now(),
+                vendorName: document.getElementById('vendorName').value,
+                vendorType: document.getElementById('vendorType').value,
+                contactPerson: document.getElementById('contactPerson').value,
+                contactEmail: document.getElementById('contactEmail').value,
+                contactPhone: document.getElementById('contactPhone').value,
+                vendorWebsite: document.getElementById('vendorWebsite').value,
+                contractStart: document.getElementById('contractStart').value,
+                contractEnd: document.getElementById('contractEnd').value,
+                vendorStatus: document.getElementById('vendorStatus').value,
+                serviceLevel: document.getElementById('serviceLevel').value,
+                vendorNotes: document.getElementById('vendorNotes').value,
+                createdAt: editingVendorId ? vendors.find(v => v.id === editingVendorId).createdAt : new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+            
+            if (editingVendorId) {
+                // Update existing vendor
+                const index = vendors.findIndex(v => v.id === editingVendorId);
+                if (index !== -1) {
+                    vendors[index] = vendor;
+                    addActivity('Updated vendor: ' + vendor.vendorName);
+                }
+                editingVendorId = null;
+            } else {
+                // Add new vendor
+                vendors.push(vendor);
+                addActivity('Added new vendor: ' + vendor.vendorName);
+            }
+            
+            saveVendors();
+            renderVendorsTable();
+            clearVendorForm();
+            updateDashboard();
+            populateVendorDropdowns(); // Update dropdowns
+            showToast('Vendor saved successfully!', 'success');
+        }
+        
+        function editVendor(id) {
+            const vendor = vendors.find(v => v.id === id);
+            if (!vendor) return;
+            
+            // Populate form
+            document.getElementById('vendorId').value = vendor.id;
+            document.getElementById('vendorName').value = vendor.vendorName;
+            document.getElementById('vendorType').value = vendor.vendorType;
+            document.getElementById('contactPerson').value = vendor.contactPerson || '';
+            document.getElementById('contactEmail').value = vendor.contactEmail || '';
+            document.getElementById('contactPhone').value = vendor.contactPhone || '';
+            document.getElementById('vendorWebsite').value = vendor.vendorWebsite || '';
+            document.getElementById('contractStart').value = vendor.contractStart || '';
+            document.getElementById('contractEnd').value = vendor.contractEnd || '';
+            document.getElementById('vendorStatus').value = vendor.vendorStatus;
+            document.getElementById('serviceLevel').value = vendor.serviceLevel || '';
+            document.getElementById('vendorNotes').value = vendor.vendorNotes || '';
+            
+            editingVendorId = id;
+            document.querySelector('#vendorForm button[type="submit"]').innerHTML = '<i class="fas fa-save"></i> Update Vendor';
+            
+            // Scroll to form
+            document.getElementById('vendors').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function deleteVendor(id) {
+            if (confirm('Are you sure you want to delete this vendor?')) {
+                const vendor = vendors.find(v => v.id === id);
+                vendors = vendors.filter(v => v.id !== id);
+                saveVendors();
+                addActivity('Deleted vendor: ' + vendor.vendorName);
+                renderVendorsTable();
+                updateDashboard();
+                populateVendorDropdowns(); // Update dropdowns
+                showToast('Vendor deleted successfully!', 'success');
+            }
+        }
+        
+        function clearVendorForm() {
+            document.getElementById('vendorForm').reset();
+            setTodayDates();
+            editingVendorId = null;
+            document.querySelector('#vendorForm button[type="submit"]').innerHTML = '<i class="fas fa-save"></i> Save Vendor';
+        }
+        
+        function filterVendors() {
+            const searchTerm = document.getElementById('searchVendors').value.toLowerCase();
+            const typeFilter = document.getElementById('filterVendorType').value;
+            const statusFilter = document.getElementById('filterVendorStatus').value;
+            
+            const filtered = vendors.filter(vendor => {
+                // Search filter
+                const matchesSearch = !searchTerm || 
+                    vendor.vendorName.toLowerCase().includes(searchTerm) ||
+                    (vendor.contactPerson && vendor.contactPerson.toLowerCase().includes(searchTerm)) ||
+                    (vendor.contactEmail && vendor.contactEmail.toLowerCase().includes(searchTerm));
+                
+                // Type filter
+                const matchesType = !typeFilter || vendor.vendorType === typeFilter;
+                
+                // Status filter
+                const matchesStatus = !statusFilter || vendor.vendorStatus === statusFilter;
+                
+                return matchesSearch && matchesType && matchesStatus;
+            });
+            
+            renderVendorsTable(filtered);
+        }
+        
+        function renderVendorsTable(filteredVendors = null) {
+            const vendorsToShow = filteredVendors || vendors;
+            const tbody = document.getElementById('vendorsTableBody');
+            const emptyState = document.getElementById('emptyVendors');
+            
+            if (vendorsToShow.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+            
+            emptyState.style.display = 'none';
+            
+            // Sort by name
+            const sortedVendors = [...vendorsToShow].sort((a, b) => a.vendorName.localeCompare(b.vendorName));
+            
+            tbody.innerHTML = sortedVendors.map(vendor => `
+                <tr>
+                    <td><strong>${vendor.vendorName}</strong></td>
+                    <td>${vendor.vendorType}</td>
+                    <td>${vendor.contactPerson || 'N/A'}</td>
+                    <td>${vendor.contactEmail || 'N/A'}</td>
+                    <td>
+                        <span class="status-badge ${getStatusClass(vendor.vendorStatus)}">
+                            ${vendor.vendorStatus}
+                        </span>
+                    </td>
+                    <td class="actions-cell">
+                        <button class="btn btn-primary btn-sm" onclick="viewVendor('${vendor.id}')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-success btn-sm" onclick="editVendor('${vendor.id}')">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteVendor('${vendor.id}')">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+            
+            // Update badge
+            document.getElementById('vendors-badge').textContent = vendors.length;
+        }
+        
+        function viewVendor(id) {
+            const vendor = vendors.find(v => v.id === id);
+            if (!vendor) return;
+            
+            const modalContent = `
+                <div class="modal-header">
+                    <h2>Vendor Details</h2>
+                    <button class="modal-close" onclick="closeModal()">&times;</button>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color: #2c3e50;">${vendor.vendorName}</h3>
+                    <p style="color: #7f8c8d;">Type: ${vendor.vendorType}</p>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 20px;">
+                    <div>
+                        <strong>Status:</strong><br>
+                        <span class="status-badge ${getStatusClass(vendor.vendorStatus)}">
+                            ${vendor.vendorStatus}
+                        </span>
+                    </div>
+                    <div>
+                        <strong>Contact Person:</strong><br>
+                        ${vendor.contactPerson || 'Not specified'}
+                    </div>
+                    <div>
+                        <strong>Contact Email:</strong><br>
+                        ${vendor.contactEmail || 'Not specified'}
+                    </div>
+                    <div>
+                        <strong>Contact Phone:</strong><br>
+                        ${vendor.contactPhone || 'Not specified'}
+                    </div>
+                    <div>
+                        <strong>Website:</strong><br>
+                        ${vendor.vendorWebsite ? `<a href="${vendor.vendorWebsite}" target="_blank">${vendor.vendorWebsite}</a>` : 'Not specified'}
+                    </div>
+                    <div>
+                        <strong>Contract Period:</strong><br>
+                        ${formatDate(vendor.contractStart)} to ${formatDate(vendor.contractEnd)}
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <strong>Service Level Agreement (SLA):</strong>
+                    <p style="background-color: #f8f9fa; padding: 15px; border-radius: 6px; margin-top: 8px;">
+                        ${vendor.serviceLevel || 'No SLA specified'}
+                    </p>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <strong>Notes:</strong>
+                    <p style="background-color: #f8f9fa; padding: 15px; border-radius: 6px; margin-top: 8px;">
+                        ${vendor.vendorNotes || 'No notes'}
+                    </p>
+                </div>
+                
+                <div style="color: #95a5a6; font-size: 0.9rem;">
+                    <p>Created: ${formatDateTime(vendor.createdAt)}</p>
+                    <p>Last updated: ${formatDateTime(vendor.updatedAt)}</p>
+                </div>
+            `;
+            
+            showModal(modalContent);
+        }
+        
+        // ============== VENDOR DROPDOWNS ==============
+        function populateVendorDropdowns() {
+            const vendorSelects = [
+                document.getElementById('vendor'),
+                document.getElementById('licenseVendor')
+            ];
+            
+            vendorSelects.forEach(select => {
+                if (!select) return;
+                
+                // Clear existing options except first
+                while (select.options.length > 1) {
+                    select.remove(1);
+                }
+                
+                // Add vendor options
+                vendors.forEach(vendor => {
+                    const option = document.createElement('option');
+                    option.value = vendor.vendorName;
+                    option.textContent = vendor.vendorName;
+                    select.appendChild(option);
+                });
+            });
+        }
+        
+        // ============== DASHBOARD ==============
+        function updateDashboard() {
+            // Update counts
+            document.getElementById('total-assets').textContent = assets.length;
+            document.getElementById('total-vendors').textContent = vendors.length;
+            document.getElementById('total-licenses').textContent = licenses.length;
+            
+            // Update asset status
+            const activeAssets = assets.filter(a => a.assetStatus === 'Active').length;
+            const inactiveAssets = assets.filter(a => a.assetStatus !== 'Active').length;
+            document.getElementById('asset-status').textContent = `${activeAssets} Active, ${inactiveAssets} Inactive`;
+            
+            // Update vendor status
+            const activeVendors = vendors.filter(v => v.vendorStatus === 'Active').length;
+            const inactiveVendors = vendors.filter(v => v.vendorStatus !== 'Active').length;
+            document.getElementById('vendor-status').textContent = `${activeVendors} Active, ${inactiveVendors} Inactive`;
+            
+            // Update license status
+            const activeLicenses = licenses.filter(l => l.licenseStatus === 'Active').length;
+            const expiredLicenses = licenses.filter(l => l.licenseStatus === 'Expired').length;
+            document.getElementById('license-status').textContent = `${activeLicenses} Active, ${expiredLicenses} Expired`;
+            
+            // Count expiring soon (within 30 days)
+            const today = new Date();
+            const thirtyDaysFromNow = new Date(today);
+            thirtyDaysFromNow.setDate(today.getDate() + 30);
+            
+            let expiringCount = 0;
+            
+            // Check licenses expiring soon
+            licenses.forEach(license => {
+                if (license.expiryDate) {
+                    const expiryDate = new Date(license.expiryDate);
+                    if (expiryDate > today && expiryDate <= thirtyDaysFromNow) {
+                        expiringCount++;
+                    }
+                }
+            });
+            
+            // Check warranties expiring soon
+            assets.forEach(asset => {
+                if (asset.warrantyEnd) {
+                    const warrantyEnd = new Date(asset.warrantyEnd);
+                    if (warrantyEnd > today && warrantyEnd <= thirtyDaysFromNow) {
+                        expiringCount++;
+                    }
+                }
+            });
+            
+            // Check vendor contracts expiring soon
+            vendors.forEach(vendor => {
+                if (vendor.contractEnd) {
+                    const contractEnd = new Date(vendor.contractEnd);
+                    if (contractEnd > today && contractEnd <= thirtyDaysFromNow) {
+                        expiringCount++;
+                    }
+                }
+            });
+            
+            document.getElementById('expiring-soon').textContent = expiringCount;
+            
+            // Update dashboard badge
+            document.getElementById('dashboard-badge').textContent = expiringCount;
+            
+            // Load upcoming renewals
+            loadUpcomingRenewals();
+            
+            // Load recent activities
+            loadRecentActivities();
+        }
+        
+        function loadUpcomingRenewals() {
+            const container = document.getElementById('upcoming-renewals');
+            const emptyState = document.getElementById('empty-renewals');
+            
+            const today = new Date();
+            const ninetyDaysFromNow = new Date(today);
+            ninetyDaysFromNow.setDate(today.getDate() + 90);
+            
+            const renewals = [];
+            
+            // Add licenses expiring soon
+            licenses.forEach(license => {
+                if (license.expiryDate) {
+                    const expiryDate = new Date(license.expiryDate);
+                    if (expiryDate > today && expiryDate <= ninetyDaysFromNow) {
+                        renewals.push({
+                            type: 'License',
+                            name: license.softwareName,
+                            date: license.expiryDate,
+                            daysLeft: Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24))
+                        });
+                    }
+                }
+            });
+            
+            // Add warranties expiring soon
+            assets.forEach(asset => {
+                if (asset.warrantyEnd) {
+                    const warrantyEnd = new Date(asset.warrantyEnd);
+                    if (warrantyEnd > today && warrantyEnd <= ninetyDaysFromNow) {
+                        renewals.push({
+                            type: 'Warranty',
+                            name: asset.assetName,
+                            date: asset.warrantyEnd,
+                            daysLeft: Math.ceil((warrantyEnd - today) / (1000 * 60 * 60 * 24))
+                        });
+                    }
+                }
+            });
+            
+            // Add vendor contracts expiring soon
+            vendors.forEach(vendor => {
+                if (vendor.contractEnd) {
+                    const contractEnd = new Date(vendor.contractEnd);
+                    if (contractEnd > today && contractEnd <= ninetyDaysFromNow) {
+                        renewals.push({
+                            type: 'Contract',
+                            name: vendor.vendorName,
+                            date: vendor.contractEnd,
+                            daysLeft: Math.ceil((contractEnd - today) / (1000 * 60 * 60 * 24))
+                        });
+                    }
+                }
+            });
+            
+            // Sort by date (soonest first)
+            renewals.sort((a, b) => new Date(a.date) - new Date(b.date));
+            
+            if (renewals.length === 0) {
+                container.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+            
+            emptyState.style.display = 'none';
+            
+            // Show top 5 renewals
+            const topRenewals = renewals.slice(0, 5);
+            
+            container.innerHTML = topRenewals.map(renewal => `
+                <div class="asset-card ${renewal.daysLeft <= 30 ? 'expiring' : 'warning'}">
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div>
+                            <strong>${renewal.name}</strong><br>
+                            <small style="color: #7f8c8d;">${renewal.type}</small>
+                        </div>
+                        <span style="color: ${renewal.daysLeft <= 30 ? '#e74c3c' : '#f39c12'}; font-weight: 600;">
+                            ${renewal.daysLeft} days
+                        </span>
+                    </div>
+                    <div style="margin-top: 10px; color: #95a5a6; font-size: 0.9rem;">
+                        Renewal date: ${formatDate(renewal.date)}
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function loadRecentActivities() {
+            const container = document.getElementById('recent-activities');
+            const emptyState = document.getElementById('empty-activities');
+            
+            if (activities.length === 0) {
+                container.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+            
+            emptyState.style.display = 'none';
+            
+            // Show last 5 activities
+            const recentActivities = [...activities].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 5);
+            
+            container.innerHTML = recentActivities.map(activity => `
+                <div class="asset-card">
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div>
+                            <strong>${activity.action}</strong><br>
+                            <small style="color: #7f8c8d;">${formatDateTime(activity.timestamp)}</small>
+                        </div>
+                        <span class="status-badge status-active" style="font-size: 0.8rem;">
+                            ${activity.type || 'Activity'}
+                        </span>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function loadReportStats() {
+            const container = document.getElementById('reportStats');
+            
+            const assetTypes = {};
+            const licenseTypes = {};
+            const vendorTypes = {};
+            
+            assets.forEach(asset => {
+                assetTypes[asset.assetType] = (assetTypes[asset.assetType] || 0) + 1;
+            });
+            
+            licenses.forEach(license => {
+                licenseTypes[license.licenseType] = (licenseTypes[license.licenseType] || 0) + 1;
+            });
+            
+            vendors.forEach(vendor => {
+                vendorTypes[vendor.vendorType] = (vendorTypes[vendor.vendorType] || 0) + 1;
+            });
+            
+            const totalCost = assets.reduce((sum, asset) => sum + (asset.purchaseCost || 0), 0) +
+                             licenses.reduce((sum, license) => sum + (license.licenseCost || 0), 0);
+            
+            const activeLicenses = licenses.filter(l => l.licenseStatus === 'Active').length;
+            const expiredLicenses = licenses.filter(l => l.licenseStatus === 'Expired').length;
+            
+            container.innerHTML = `
+                <div class="dashboard-card">
+                    <h3>${assets.length}</h3>
+                    <p>Total Assets</p>
+                    <div class="subtext">${Object.keys(assetTypes).length} types</div>
+                </div>
+                <div class="dashboard-card">
+                    <h3>${licenses.length}</h3>
+                    <p>Total Licenses</p>
+                    <div class="subtext">${activeLicenses} active, ${expiredLicenses} expired</div>
+                </div>
+                <div class="dashboard-card">
+                    <h3>${vendors.length}</h3>
+                    <p>Vendor Partners</p>
+                    <div class="subtext">${Object.keys(vendorTypes).length} categories</div>
+                </div>
+                <div class="dashboard-card">
+                    <h3>$${totalCost.toFixed(2)}</h3>
+                    <p>Total Asset Value</p>
+                    <div class="subtext">Assets + Licenses</div>
+                </div>
+            `;
+        }
+        
+        function addActivity(action, type = 'System') {
+            const activity = {
+                action: action,
+                type: type,
+                timestamp: new Date().toISOString()
+            };
+            
+            activities.unshift(activity);
+            
+            // Keep only last 50 activities
+            if (activities.length > 50) {
+                activities.pop();
+            }
+            
+            saveActivities();
+        }
+        
+        // ============== DATA PERSISTENCE ==============
+        function saveAssets() {
+            localStorage.setItem('itAssets', JSON.stringify(assets));
+        }
+        
+        function saveLicenses() {
+            localStorage.setItem('itLicenses', JSON.stringify(licenses));
+        }
+        
+        function saveVendors() {
+            localStorage.setItem('itVendors', JSON.stringify(vendors));
+        }
+        
+        function saveActivities() {
+            localStorage.setItem('itActivities', JSON.stringify(activities));
+        }
+        
+        function loadAllData() {
+            assets = JSON.parse(localStorage.getItem('itAssets')) || [];
+            licenses = JSON.parse(localStorage.getItem('itLicenses')) || [];
+            vendors = JSON.parse(localStorage.getItem('itVendors')) || [];
+            activities = JSON.parse(localStorage.getItem('itActivities')) || [];
+            
+            updateDashboard();
+        }
+        
+        function exportAllData() {
+            const allData = {
+                assets: assets,
+                licenses: licenses,
+                vendors: vendors,
+                activities: activities,
+                exportDate: new Date().toISOString()
+            };
+            
+            const dataStr = JSON.stringify(allData, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `it-management-export-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showToast('All data exported successfully!', 'success');
+        }
+        
+        function exportAssetsCSV() {
+            if (assets.length === 0) {
+                showToast('No assets to export', 'warning');
+                return;
+            }
+            
+            const headers = ['Asset Tag', 'Name', 'Type', 'Status', 'Assigned To', 'Location', 'Purchase Date', 'Warranty End', 'Cost', 'Vendor'];
+            const csvRows = [
+                headers.join(','),
+                ...assets.map(a => [
+                    `"${a.assetTag}"`,
+                    `"${a.assetName}"`,
+                    `"${a.assetType}"`,
+                    `"${a.assetStatus}"`,
+                    `"${a.assignedTo || ''}"`,
+                    `"${a.location || ''}"`,
+                    `"${a.purchaseDate || ''}"`,
+                    `"${a.warrantyEnd || ''}"`,
+                    `"${a.purchaseCost || ''}"`,
+                    `"${a.vendor || ''}"`
+                ].join(','))
+            ];
+            
+            downloadCSV(csvRows, 'assets');
+        }
+        
+        function exportLicensesCSV() {
+            if (licenses.length === 0) {
+                showToast('No licenses to export', 'warning');
+                return;
+            }
+            
+            const headers = ['Software', 'License Key', 'Type', 'Status', 'Purchase Date', 'Expiry Date', 'Seats', 'Used Seats', 'Cost', 'Renewal Cost', 'Vendor'];
+            const csvRows = [
+                headers.join(','),
+                ...licenses.map(l => [
+                    `"${l.softwareName}"`,
+                    `"${l.licenseKey}"`,
+                    `"${l.licenseType}"`,
+                    `"${l.licenseStatus}"`,
+                    `"${l.purchaseDate || ''}"`,
+                    `"${l.expiryDate || ''}"`,
+                    `"${l.seats}"`,
+                    `"${l.usedSeats}"`,
+                    `"${l.licenseCost || ''}"`,
+                    `"${l.renewalCost || ''}"`,
+                    `"${l.vendor || ''}"`
+                ].join(','))
+            ];
+            
+            downloadCSV(csvRows, 'licenses');
+        }
+        
+        function exportVendorsCSV() {
+            if (vendors.length === 0) {
+                showToast('No vendors to export', 'warning');
+                return;
+            }
+            
+            const headers = ['Vendor Name', 'Type', 'Contact Person', 'Email', 'Phone', 'Website', 'Contract Start', 'Contract End', 'Status', 'SLA'];
+            const csvRows = [
+                headers.join(','),
+                ...vendors.map(v => [
+                    `"${v.vendorName}"`,
+                    `"${v.vendorType}"`,
+                    `"${v.contactPerson || ''}"`,
+                    `"${v.contactEmail || ''}"`,
+                    `"${v.contactPhone || ''}"`,
+                    `"${v.vendorWebsite || ''}"`,
+                    `"${v.contractStart || ''}"`,
+                    `"${v.contractEnd || ''}"`,
+                    `"${v.vendorStatus}"`,
+                    `"${v.serviceLevel || ''}"`
+                ].join(','))
+            ];
+            
+            downloadCSV(csvRows, 'vendors');
+        }
+        
+        function downloadCSV(csvRows, type) {
+            const csvString = csvRows.join('\n');
+            const blob = new Blob([csvString], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${type}-export-${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showToast(`${type} exported to CSV successfully!`, 'success');
+        }
+        
+        // ============== UTILITY FUNCTIONS ==============
+        function getStatusClass(status) {
+            switch(status) {
+                case 'Active':
+                case 'Solved':
+                    return 'status-active';
+                case 'Inactive':
+                case 'Terminated':
+                case 'Lost':
+                case 'Expired':
+                    return 'status-inactive';
+                case 'Pending':
+                case 'Repair':
+                case 'Renewal Pending':
+                case 'Suspended':
+                    return 'status-warning';
+                default:
+                    return 'status-active';
+            }
+        }
+        
+        function getLicenseStatusClass(status, expiryDate) {
+            if (status === 'Expired') return 'status-expired';
+            if (status === 'Active' && isDateNearExpiry(expiryDate)) return 'status-warning';
+            return getStatusClass(status);
+        }
+        
+        function isDateNearExpiry(dateString) {
+            if (!dateString) return false;
+            
+            const expiryDate = new Date(dateString);
+            const today = new Date();
+            const thirtyDaysFromNow = new Date(today);
+            thirtyDaysFromNow.setDate(today.getDate() + 30);
+            
+            return expiryDate > today && expiryDate <= thirtyDaysFromNow;
+        }
+        
+        function formatDate(dateString) {
+            if (!dateString) return 'Not set';
+            
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+        
+        function formatDateTime(dateString) {
+            if (!dateString) return 'Not set';
+            
+            const date = new Date(dateString);
+            return date.toLocaleString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+        
+        function showModal(content) {
+            const modal = document.getElementById('problemModal');
+            document.getElementById('modalContent').innerHTML = content;
+            modal.style.display = 'flex';
+        }
+        
+        function closeModal() {
+            document.getElementById('problemModal').style.display = 'none';
+        }
+        
+        function showToast(message, type = 'success') {
+            // Remove existing toast
+            const existingToast = document.querySelector('.toast');
+            if (existingToast) existingToast.remove();
+            
+            // Create toast
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-info-circle'}"></i>
+                    <span>${message}</span>
+                </div>
+                <button onclick="this.parentElement.remove()" style="background: none; border: none; color: white; cursor: pointer;">&times;</button>
+            `;
+            
+            // Style toast
+            toast.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                background-color: ${type === 'success' ? '#27ae60' : type === 'warning' ? '#f39c12' : '#3498db'};
+                color: white;
+                padding: 15px 20px;
+                border-radius: 6px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                min-width: 300px;
+                z-index: 1000;
+                animation: slideIn 0.3s ease-out;
+            `;
+            
+            // Add animation styles
+            if (!document.querySelector('#toast-animation')) {
+                const style = document.createElement('style');
+                style.id = 'toast-animation';
+                style.textContent = `
+                    @keyframes slideIn {
+                        from { transform: translateX(100%); opacity: 0; }
+                        to { transform: translateX(0); opacity: 1; }
+                    }
+                    @keyframes slideOut {
+                        from { transform: translateX(0); opacity: 1; }
+                        to { transform: translateX(100%); opacity: 0; }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+            
+            document.body.appendChild(toast);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.style.animation = 'slideOut 0.3s ease-out';
+                    setTimeout(() => toast.remove(), 300);
+                }
+            }, 5000);
+        }
+        
+        // ============== SAMPLE DATA ==============
+        function addSampleData() {
+            // Add sample vendors
+            const sampleVendors = [
+                {
+                    id: 'VENDOR-1',
+                    vendorName: 'Dell Technologies',
+                    vendorType: 'Hardware',
+                    contactPerson: 'Sarah Johnson',
+                    contactEmail: 'sarah.j@dell.com',
+                    contactPhone: '+1 (800) 123-4567',
+                    vendorWebsite: 'https://www.dell.com',
+                    contractStart: '2024-01-01',
+                    contractEnd: '2024-12-31',
+                    vendorStatus: 'Active',
+                    serviceLevel: 'Next business day support, 24/7 phone support',
+                    vendorNotes: 'Primary hardware vendor for laptops and servers',
+                    createdAt: '2024-01-01T10:00:00.000Z',
+                    updatedAt: '2024-01-01T10:00:00.000Z'
+                },
+                {
+                    id: 'VENDOR-2',
+                    vendorName: 'Microsoft',
+                    vendorType: 'Software',
+                    contactPerson: 'Mike Williams',
+                    contactEmail: 'mike.w@microsoft.com',
+                    contactPhone: '+1 (800) 642-7676',
+                    vendorWebsite: 'https://www.microsoft.com',
+                    contractStart: '2024-01-15',
+                    contractEnd: '2024-12-31',
+                    vendorStatus: 'Active',
+                    serviceLevel: 'Standard support, 8am-5pm PST',
+                    vendorNotes: 'Office 365 and Windows licenses',
+                    createdAt: '2024-01-15T09:30:00.000Z',
+                    updatedAt: '2024-01-15T09:30:00.000Z'
+                }
+            ];
+            
+            vendors.push(...sampleVendors);
+            
+            // Add sample assets
+            const sampleAssets = [
+                {
+                    id: 'ASSET-1',
+                    assetTag: 'LAP-001',
+                    assetName: 'Dell Latitude 7420',
+                    assetType: 'Laptop',
+                    assetStatus: 'Active',
+                    assignedTo: 'John Smith',
+                    location: 'Floor 3, Desk 12',
+                    purchaseDate: '2023-03-15',
+                    warrantyEnd: '2025-03-15',
+                    purchaseCost: 1250.00,
+                    vendor: 'Dell Technologies',
+                    assetNotes: '16GB RAM, 512GB SSD, i7 Processor',
+                    createdAt: '2023-03-15T14:30:00.000Z',
+                    updatedAt: '2023-03-15T14:30:00.000Z'
+                },
+                {
+                    id: 'ASSET-2',
+                    assetTag: 'SRV-001',
+                    assetName: 'Dell PowerEdge R740',
+                    assetType: 'Server',
+                    assetStatus: 'Active',
+                    assignedTo: 'IT Department',
+                    location: 'Server Room Rack A',
+                    purchaseDate: '2022-11-20',
+                    warrantyEnd: '2024-11-20',
+                    purchaseCost: 8500.00,
+                    vendor: 'Dell Technologies',
+                    assetNotes: 'Primary file server, 64GB RAM, 4TB RAID',
+                    createdAt: '2022-11-20T11:15:00.000Z',
+                    updatedAt: '2022-11-20T11:15:00.000Z'
+                }
+            ];
+            
+            assets.push(...sampleAssets);
+            
+            // Add sample licenses
+            const sampleLicenses = [
+                {
+                    id: 'LIC-1',
+                    licenseKey: 'XXXXX-XXXXX-XXXXX-XXXXX-XXXXX',
+                    softwareName: 'Microsoft Office 365',
+                    licenseType: 'Subscription',
+                    licenseStatus: 'Active',
+                    purchaseDate: '2024-01-01',
+                    expiryDate: '2024-12-31',
+                    seats: 50,
+                    usedSeats: 45,
+                    licenseCost: 2500.00,
+                    renewalCost: 2500.00,
+                    vendor: 'Microsoft',
+                    assignedUsers: 'user1@company.com, user2@company.com',
+                    licenseNotes: 'Annual subscription, includes Teams, OneDrive',
+                    createdAt: '2024-01-01T08:00:00.000Z',
+                    updatedAt: '2024-01-01T08:00:00.000Z'
+                },
+                {
+                    id: 'LIC-2',
+                    licenseKey: 'YYYYY-YYYYY-YYYYY-YYYYY-YYYYY',
+                    softwareName: 'Adobe Creative Cloud',
+                    licenseType: 'Subscription',
+                    licenseStatus: 'Active',
+                    purchaseDate: '2024-02-01',
+                    expiryDate: '2024-07-31',
+                    seats: 10,
+                    usedSeats: 8,
+                    licenseCost: 1200.00,
+                    renewalCost: 1200.00,
+                    vendor: 'Adobe',
+                    assignedUsers: 'designer1@company.com, designer2@company.com',
+                    licenseNotes: '6-month subscription for design team',
+                    createdAt: '2024-02-01T10:30:00.000Z',
+                    updatedAt: '2024-02-01T10:30:00.000Z'
+                }
+            ];
+            
+            licenses.push(...sampleLicenses);
+            
+            // Add sample activities
+            const sampleActivities = [
+                {
+                    action: 'Added new asset: Dell Latitude 7420',
+                    type: 'Asset',
+                    timestamp: '2024-03-15T14:30:00.000Z'
+                },
+                {
+                    action: 'Added new vendor: Dell Technologies',
+                    type: 'Vendor',
+                    timestamp: '2024-01-01T10:00:00.000Z'
+                },
+                {
+                    action: 'Added new license: Microsoft Office 365',
+                    type: 'License',
+                    timestamp: '2024-01-01T08:00:00.000Z'
+                }
+            ];
+            
+            activities.push(...sampleActivities);
+            
+            // Save all data
+            saveAssets();
+            saveLicenses();
+            saveVendors();
+            saveActivities();
+            
+            // Update UI
+            updateDashboard();
+            populateVendorDropdowns();
+            
+            showToast('Sample data loaded successfully!', 'success');
+        }
+    </script>
+</body>
+</html>
